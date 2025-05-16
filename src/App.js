@@ -12,7 +12,7 @@ const App = () => {
 
   useEffect(() => {
     const fetchData = async () => {
-      const token = "ya29.a0AW4Xtxj2kCn-8q7AzAP3ljTJ_gfxS1i7r6RQQ-G59q1zaiAG4n3LQ3Shxz9hjGBuBhjHY6lWKdPY2vPnDPzUyT-WDjpioiFOQzsX68BSrpdQZAtQD7eBJHzBKVOj4C6juJM4GL79GAG_hq8kQ2WBTbHmnktDaud-N-HwBomLaCgYKAaASARYSFQHGX2Mi6GNFWAPAb2oSakI7nT05Eg0175";
+      const token = process.env.token;
 
       try {
         const response = await axios.post(

@@ -5,62 +5,91 @@ import {
 } from "recharts";
 import "./App.css";
 
+const getAccessToken = async () => {
+  const refreshToken = process.env.REACT_APP_REFRESH_TOKEN;
+  const clientId = process.env.REACT_APP_GOOGLE_CLIENT_ID;
+  const clientSecret = process.env.REACT_APP_GOOGLE_CLIENT_SECRET;
+
+  try {
+    const response = await axios.post(
+      "https://oauth2.googleapis.com/token",
+      new URLSearchParams({
+        client_id: clientId,
+        client_secret: clientSecret,
+        refresh_token: refreshToken,
+        grant_type: "refresh_token"
+      }),
+      {
+        headers: {
+          "Content-Type": "application/x-www-form-urlencoded"
+        }
+      }
+    );
+
+    return response.data.access_token;
+  } catch (error) {
+    console.error("Failed to refresh token", error.response?.data || error.message);
+    throw error;
+  }
+};
+
+
 const App = () => {
   const [activeTab, setActiveTab] = useState("overview");
   const [data, setData] = useState([]);
   const [deviceStats, setDeviceStats] = useState({});
 
-  useEffect(() => {
-    const fetchData = async () => {
-      const token = "ya29.a0AW4Xtxj2kCn-8q7AzAP3ljTJ_gfxS1i7r6RQQ-G59q1zaiAG4n3LQ3Shxz9hjGBuBhjHY6lWKdPY2vPnDPzUyT-WDjpioiFOQzsX68BSrpdQZAtQD7eBJHzBKVOj4C6juJM4GL79GAG_hq8kQ2WBTbHmnktDaud-N-HwBomLaCgYKAaASARYSFQHGX2Mi6GNFWAPAb2oSakI7nT05Eg0175";
+useEffect(() => {
+  const fetchData = async () => {
+    try {
+      const token = await getAccessToken(); // 🔁 always fresh token
 
-      try {
-        const response = await axios.post(
-          "https://www.googleapis.com/webmasters/v3/sites/https%3A%2F%2Fseoscientist.agency%2F/searchAnalytics/query",
-          {
-            startDate: "2025-04-01",
-            endDate: "2025-05-01",
-            dimensions: ["query", "date"],
-            rowLimit: 10,
-          },
-          {
-            headers: {
-              Authorization: `Bearer ${token}`,
-              "Content-Type": "application/json",
-            },
+      const queryRes = await axios.post(
+        "https://www.googleapis.com/webmasters/v3/sites/https%3A%2F%2Fseoscientist.agency%2F/searchAnalytics/query",
+        {
+          startDate: "2025-04-01",
+          endDate: "2025-05-01",
+          dimensions: ["query", "date"],
+          rowLimit: 10
+        },
+        {
+          headers: {
+            Authorization: `Bearer ${token}`,
+            "Content-Type": "application/json"
           }
-        );
+        }
+      );
 
-        setData(response.data.rows || []);
+      setData(queryRes.data.rows || []);
 
-        const deviceData = await axios.post(
-          "https://www.googleapis.com/webmasters/v3/sites/https%3A%2F%2Fseoscientist.agency%2F/searchAnalytics/query",
-          {
-            startDate: "2025-04-01",
-            endDate: "2025-05-01",
-            dimensions: ["device"],
-          },
-          {
-            headers: {
-              Authorization: `Bearer ${token}`,
-              "Content-Type": "application/json",
-            },
+      const deviceRes = await axios.post(
+        "https://www.googleapis.com/webmasters/v3/sites/https%3A%2F%2Fseoscientist.agency%2F/searchAnalytics/query",
+        {
+          startDate: "2025-04-01",
+          endDate: "2025-05-01",
+          dimensions: ["device"]
+        },
+        {
+          headers: {
+            Authorization: `Bearer ${token}`,
+            "Content-Type": "application/json"
           }
-        );
+        }
+      );
 
-        const stats = {};
-        (deviceData.data.rows || []).forEach(row => {
-          stats[row.keys[0]] = row.clicks;
-        });
+      const stats = {};
+      (deviceRes.data.rows || []).forEach(row => {
+        stats[row.keys[0]] = row.clicks;
+      });
 
-        setDeviceStats(stats);
-      } catch (error) {
-        console.error("Error fetching data:", error);
-      }
-    };
+      setDeviceStats(stats);
+    } catch (err) {
+      console.error("Fetch failed:", err);
+    }
+  };
 
-    fetchData();
-  }, []);
+  fetchData();
+}, []);
 
   const COLORS = ["#00C49F", "#FFBB28", "#FF8042"];
 
